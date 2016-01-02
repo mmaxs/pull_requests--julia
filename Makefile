@@ -312,6 +312,7 @@ else
 $(eval $(call std_dll,gcc_s_seh-1))
 endif
 $(eval $(call std_dll,ssp-0))
+$(eval $(call std_dll,winpthread-1))
 endif
 define stringreplace
 	$(build_bindir)/stringreplace $$(strings -t x - $1 | grep '$2' | awk '{print $$1;}') '$3' 255 "$(call cygpath_w,$1)"
@@ -466,7 +467,7 @@ endif
 
 ifeq ($(OS), WINNT)
 	[ ! -d $(JULIAHOME)/dist-extras ] || ( cd $(JULIAHOME)/dist-extras && \
-		cp 7z.exe 7z.dll libexpat-1.dll zlib1.dll libgfortran-3.dll libquadmath-0.dll libstdc++-6.dll libgcc_s_s*-1.dll libssp-0.dll $(BUILDROOT)/julia-$(JULIA_COMMIT)/bin && \
+		cp 7z.exe 7z.dll libexpat-1.dll zlib1.dll libgfortran-3.dll libquadmath-0.dll libstdc++-6.dll libgcc_s_s*-1.dll libssp-0.dll libwinpthread-1.dll $(BUILDROOT)/julia-$(JULIA_COMMIT)/bin && \
 	    mkdir $(BUILDROOT)/julia-$(JULIA_COMMIT)/Git && \
 	    7z x PortableGit.7z -o"$(BUILDROOT)/julia-$(JULIA_COMMIT)/Git" && \
 	    echo "[core] eol = lf" >> "$(GITCONFIG)" && \
