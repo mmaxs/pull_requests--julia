@@ -909,33 +909,40 @@ end
 
 function read!(s::LibuvStream, a::Array{UInt8, 1})
     nb = length(a)
-    sbuf = s.buffer
-    @assert sbuf.seekable == false
-    @assert sbuf.maxsize >= nb
+    @assert s.buffer.maxsize >= nb
 
-    nba = nb_available(sbuf)
+    nba = nb_available(s.buffer)
     if nba >= nb
-        return read!(sbuf, a)
+        return read!(s.buffer, a)
     end
 
     if nb <= SZ_UNBUFFERED_IO # Under this limit we are OK with copying the array from the stream's buffer
         try
             wait_readnb(s, nb)
+        catch # don't lost data on UVError
             nba = nb_available(s.buffer)
-            read!(sbuf, a)
+            nba < nb && resize!(a, nba)
+            read!(s.buffer, a)
+            rethrow()
+        end
+        try
+            nba = nb_available(s.buffer)
+            read!(s.buffer, a)
         finally
             nba < nb && resize!(a, nba)
         end
     else
+        sbuf = s.buffer
+        @assert sbuf.seekable == false
         try
             stop_reading(s) # Just playing it safe, since we are going to switch buffers.
             newbuf = PipeBuffer(a, #=maxsize=# nb)
             newbuf.size = 0 # reset the write pointer to the beginning
+            write(newbuf, s.buffer)
             s.buffer = newbuf
-            write(newbuf, sbuf)
             wait_readnb(s, nb)
-            nba = nb_available(s.buffer)
         finally
+            nba = nb_available(s.buffer)
             s.buffer = sbuf
             nba < nb && resize!(a, nba)
             if !isempty(s.readnotify.waitq)

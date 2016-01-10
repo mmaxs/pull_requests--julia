@@ -5,7 +5,7 @@ using Base.Test
 
 
 # method 'read!(::Base.LibuvStream, ::Array{UInt8, 1})'
-# resizes its array argument on EOFError (and on other exceptions)
+# resizes its array argument on EOFError and UVError
 # to indicate the number of bytes actually received
 let
 
