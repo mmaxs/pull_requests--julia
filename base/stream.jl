@@ -913,13 +913,19 @@ function read!(s::LibuvStream, a::Array{UInt8, 1})
     @assert sbuf.seekable == false
     @assert sbuf.maxsize >= nb
 
-    if nb_available(sbuf) >= nb
+    nba = nb_available(sbuf)
+    if nba >= nb
         return read!(sbuf, a)
     end
 
     if nb <= SZ_UNBUFFERED_IO # Under this limit we are OK with copying the array from the stream's buffer
         wait_readnb(s, nb)
-        read!(sbuf, a)
+        nba = nb_available(sbuf)
+        try
+            read!(sbuf, a)
+        finally
+            nba < nb && resize!(a, nba)
+        end
     else
         try
             stop_reading(s) # Just playing it safe, since we are going to switch buffers.
@@ -929,7 +935,9 @@ function read!(s::LibuvStream, a::Array{UInt8, 1})
             write(newbuf, sbuf)
             wait_readnb(s, nb)
         finally
+            nba = nb_available(s.buffer)
             s.buffer = sbuf
+            nba < nb && resize!(a, nba)
             if !isempty(s.readnotify.waitq)
                 start_reading(s) # resume reading iff there are currently other read clients of the stream
             end
